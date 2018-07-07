@@ -2,7 +2,6 @@ const express = require('express');
 const bodyParser = require('body-parser');
 
 const database = require('./database');
-
 const api = require('./api/v1/');
 
 // Connect database
@@ -23,14 +22,31 @@ app.use('/api', api);
 app.use((req, res, next) => {
   res.status(404);
   res.json({
+    error: true,
     message: 'Not found',
   });
 });
 
 app.use((err, req, res, next) => {
-  res.status(500);
+  let {
+    statusCode = 500, message,
+  } = err;
+
+  switch (err.type) {
+    case 'entity.parse.failed':
+      message = `Bad Request: ${err.message}`;
+      break;
+    default:
+      if (err.message.startsWith('ValidationError')) {
+        statusCode = 422;
+      }
+      break;
+  }
+
+  res.status(statusCode);
   res.json({
-    message: err.message,
+    error: true,
+    message,
   });
 });
 
